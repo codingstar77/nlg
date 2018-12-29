@@ -24,8 +24,8 @@ ordinal_mappings = {
 
 #Constants Required
 
-EVENTS_DATASET_PATH = './all.events'
-DESC_LABELS_PATH = './all.text'
+EVENTS_DATASET_PATH = './dataset/all.events'
+DESC_LABELS_PATH = './dataset/all.text'
 TOKENIZER_PATH = './token2.pkl'
 MODEL_PATH = './model2.h5'
 RAW_TEST_DATASET_PATH = './rawtest2.pkl'
