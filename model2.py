@@ -34,7 +34,7 @@ HISTORY_PATH = './history.pkl'
 MAX_COUNT = 29000
 MAX_LEN_FEATURES = 113
 MAX_LEN_DESC = 90
-BATCH_SIZE = 2048
+BATCH_SIZE = 1024
 EPOCHS = 150
 INPUT_VOCAB_SIZE = None
 #############################
