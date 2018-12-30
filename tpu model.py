@@ -5,11 +5,11 @@ import os
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 from keras.utils import to_categorical
-import tensorflow as tf
-from tensorflow.keras.layers import Input, LSTM, Bidirectional, Dense, Embedding,Multiply,Dropout,concatenate
-from tensorflow.keras import Model
-from tensorflow.keras.callbacks import ModelCheckpoint
-from tensorflow.keras.optimizers import Adam
+from keras.layers import Input, LSTM, Bidirectional, Dense, Embedding,Multiply,Dropout,concatenate
+from keras import Model
+from keras.callbacks import ModelCheckpoint
+from keras.optimizers import Adam
+from nltk.translate.bleu_score import corpus_bleu
 
 ordinal_mappings = { 
         '':1, '--':2, 'Chc':3, 
@@ -138,7 +138,7 @@ def create_dataset():
 
 
 
-def split_dataset(x,y,train_size = 0.7,val_size=0.1,test_size=0.2):
+def split_dataset(x,y,train_size = 0.8,val_size=0.05,test_size=0.15):
     '''
     splits the dataset in training,validation and testing datasets
     '''
@@ -153,20 +153,35 @@ def create_model(x1,x2,y):
     Defines the model and returns it
 
     '''
-    input1 = Input(shape=(x1.shape[1],),batch_size=BATCH_SIZE)
-    input2 = Input(shape=(x2.shape[1],),batch_size=BATCH_SIZE)
-    #attention = Dense(x1.shape[1],activation='softmax')(input1)
-    #merge1 =  Multiply()([input1,attention])
-    emb1 = Embedding(INPUT_VOCAB_SIZE,256)(input1)
-    emb = Embedding(y.shape[1],256,mask_zero=True)(input2)
-    dp = Dropout(0.5)(emb)
-    lstm1 = Bidirectional(LSTM(128,return_sequences=True))(dp)
-    lstm2 = Bidirectional(LSTM(128))(lstm1)
-    con = concatenate([lstm2,emb1])
-    dec1 = Dense(256,activation='relu')(con)
+    input1 = Input(shape=(x1.shape[1],))
+    input2 = Input(shape=(x2.shape[1],))
+    emb = Embedding(y.shape[1],100,mask_zero=True)(input2)
+    lstm1 = Bidirectional(LSTM(400,return_sequences=True))(dp)
+    lstm2 = Bidirectional(LSTM(400,return_sequences=True))(lstm1)
+    lstm3 = Bidirectional(LSTM(400))(lstm2)
+    con = concatenate([lstm3,input1])
+    dec1 = Dense(512,activation'relu')(con)
     dec2 = Dense(y.shape[1],activation='softmax')(dec1)
     model = Model(inputs=[input1, input2], outputs=dec2)
     return model
+    
+
+def calculate_bleu(predicted,actual):
+    '''
+    calculates bleu scores for test set
+    '''
+    hypothesis = []
+    references = []
+    for pred,act in zip(predicted,actual):
+        act = [word for word in act.split() if word.isalnum()]
+        references.append([act])
+        hypothesis.append(pred.split())
+    print(references[:2])
+    print(hypothesis[:2])
+    print('BLEU-1: %f' % corpus_bleu(references,hypothesis, weights=(1.0, 0, 0, 0)))
+    print('BLEU-2: %f' % corpus_bleu(references,hypothesis,weights=(0.5, 0.5, 0, 0)))
+    print('BLEU-3: %f' % corpus_bleu(references,hypothesis, weights=(0.3, 0.3, 0.3, 0)))
+    print('BLEU-4: %f' % corpus_bleu(references,hypothesis,weights=(0.25, 0.25, 0.25, 0.25)))
 
 
 
@@ -183,19 +198,8 @@ model.compile(
         loss='categorical_crossentropy',
         metrics=['acc'])
 print(model.summary())
-exit()
-
-TPU_WORKER = 'grpc://' + os.environ['COLAB_TPU_ADDR']
-tf.logging.set_verbosity(tf.logging.INFO)
-
-model = tf.contrib.tpu.keras_to_tpu_model(
-    model,
-    strategy=tf.contrib.tpu.TPUDistributionStrategy(
-        tf.contrib.cluster_resolver.TPUClusterResolver(TPU_WORKER)))
-
-
 filename = MODEL_PATH
 checkpoint = ModelCheckpoint(filename, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
 history = model.fit([x1_train,x2_train],y_train, epochs=EPOCHS, batch_size=BATCH_SIZE, callbacks=[checkpoint], verbose=1,validation_data=([x1_val,x2_val],y_val))
-save_file(history,HISTORY_PATH)
-print(model.evaluate([x1_test,x2_test],y_test, batch_size=BATCH_SIZE))
+save_file((history.history),HISTORY_PATH)
+print(model.evaluate([x1_test,x2_test],y_test)
