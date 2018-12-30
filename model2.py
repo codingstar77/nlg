@@ -202,4 +202,4 @@ filename = MODEL_PATH
 checkpoint = ModelCheckpoint(filename, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
 history = model.fit([x1_train,x2_train],y_train, epochs=EPOCHS, batch_size=BATCH_SIZE, callbacks=[checkpoint], verbose=1,validation_data=([x1_val,x2_val],y_val))
 save_file((history.history),HISTORY_PATH)
-print(model.evaluate([x1_test,x2_test],y_test)
+print(model.evaluate([x1_test,x2_test],y_test))
