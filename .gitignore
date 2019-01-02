@@ -104,3 +104,8 @@ venv.bak/
 .mypy_cache/
 
 .vscode
+
+model.py
+token.py
+rawtest.py
+./test1
